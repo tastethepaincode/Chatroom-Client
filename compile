@@ -1,0 +1,1 @@
+g++ -std=c++11 ClientMessageHandler.cpp ClientMessageHandler.hpp User.cpp User.hpp MessageHandler.hpp MessageHandler.cpp main.cpp

@@ -1,16 +1,6 @@
 #ifndef USER_HPP
 #define USER_HPP
 
-#define CLIENT_AUTH 0
-#define GET_AVAILABLE_ROOMS 1
-#define GET_ROOM_STATUS 2
-#define CREATE_ROOM 3
-#define LEAVE_ROOM 4
-#define MESSAGE_PACKET 5
-#define DISCONNECT 6
-#define SIZE 4
-#define ACTION 2
-#include "MessageHandler.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -31,29 +21,30 @@
 #include <netinet/tcp.h>
 #include <fstream>
 
+class CMessageHandler;
+class CClientMessageHandler;
+
 class CUser{
 private:
-
+    friend class CClientMessageHandler;
     std::string _username;
     std::string _password;
     int _status;
-    std::string _roomName;
+    std::string _room;
     std::string _portNum;
     std::string _serverIPAddr;
     int _sockfd;
     std::vector<std::string> _otherUser;
     struct sockaddr_in _serv_addr;
     struct hosten *_server;
-    MessageHandler msgHandler;
+    CClientMessageHandler *_msgHandler;
+
 public:
-    bool establishConnection();
-    bool authenticate();
-    bool getAvailableRooms();
-    bool getRoomStatus();
-    bool createRoom();
-    bool joinRoom();
-    bool leaveRoom();
     CUser(std::string, std::string, std::string, std::string);
+    bool establishConnection();
+    void selectOption(int);
+
+
     
 };
 

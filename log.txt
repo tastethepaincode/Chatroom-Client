@@ -1,6 +1,27 @@
 Successfully connected to server.
-appendInt 14
-appendShort 0
+Option 0 to 6: 
+-------LeaveRoom--------
+---------------------- appendInt -------------------------
+appendInt 9
+---------------------- appendShort -------------------------
+appendShort 5
+---------------------- appendString -------------------------
 appendString string and size james, 6
-appendString string and size zheng, 6
-Sent message of size 18
+---------------------- appendString -------------------------
+appendString string and size , 1
+---------------------- writeMsg -------------------------
+Sent message of size 13 to sockfd4
+You selected: 5
+Option 0 to 6: 
+-------LeaveRoom--------
+---------------------- appendInt -------------------------
+appendInt 9
+---------------------- appendShort -------------------------
+appendShort 5
+---------------------- appendString -------------------------
+appendString string and size james, 6
+---------------------- appendString -------------------------
+appendString string and size , 1
+---------------------- writeMsg -------------------------
+Sent message of size 13 to sockfd4
+You selected: 5
