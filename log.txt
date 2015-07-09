@@ -1,27 +1,30 @@
 Successfully connected to server.
-Option 0 to 6: 
--------LeaveRoom--------
+Option 0 to 9: 
+You selected: 0
+-------ClientAuth--------
 ---------------------- appendInt -------------------------
-appendInt 9
+appendInt 14
 ---------------------- appendShort -------------------------
-appendShort 5
+appendShort 0
 ---------------------- appendString -------------------------
 appendString string and size james, 6
 ---------------------- appendString -------------------------
-appendString string and size , 1
+appendString string and size zheng, 6
 ---------------------- writeMsg -------------------------
-Sent message of size 13 to sockfd4
-You selected: 5
-Option 0 to 6: 
--------LeaveRoom--------
----------------------- appendInt -------------------------
-appendInt 9
----------------------- appendShort -------------------------
-appendShort 5
----------------------- appendString -------------------------
-appendString string and size james, 6
----------------------- appendString -------------------------
-appendString string and size , 1
----------------------- writeMsg -------------------------
-Sent message of size 13 to sockfd4
-You selected: 5
+Sent message of size 18 to sockfd4
+Poll detected 1 reply 
+Attempt to read from sockfd 4
+---------------------- removeInt -------------------------
+Read 4 bytes from sockfd 4
+Read value 4
+---------------------- removeShort -------------------------
+Read 2 bytes from sockfd 4
+Read value 0
+---------------------- removeBytes -------------------------
+Read 2 bytes from sockfd 4
+Read value: 1,
+Updating ClientAuth
+ ClientAuth reply length not 1
+Successfully authenticated
+Option 0 to 9: 
+You selected: 8

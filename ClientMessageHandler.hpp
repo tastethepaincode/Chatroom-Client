@@ -13,14 +13,14 @@ private:
 public:
     CClientMessageHandler(CUser *);
     bool processMessage(int,std::string&);
-    void A_ClientAuth();
-    void A_GetAvailableRooms();
-    void A_GetRoomStatus(std::string);
-    void A_CreateRoom(std::string, int);
-    void A_JoinRoom(std::string);
-    void A_LeaveRoom();
-    void A_DeliverMessagePacket(std::string);
-    void A_Disconnect();
+    void A_ClientAuth(int, std::string&);
+    void A_GetAvailableRooms(int);
+    void A_GetRoomStatus(int, std::string&);
+    void A_CreateRoom(int, std::string&);
+    void A_JoinRoom(int, std::string&);
+    void A_LeaveRoom(int, std::string&);
+    void A_DeliverMessagePacket(int, std::string&);
+    void A_Disconnect(int);
 
 };
 

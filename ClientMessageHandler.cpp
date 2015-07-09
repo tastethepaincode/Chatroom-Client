@@ -6,13 +6,12 @@ CClientMessageHandler::CClientMessageHandler(CUser *myUser):_myUser(myUser){
 
 }
 
-void CClientMessageHandler::A_ClientAuth(){
+void CClientMessageHandler::A_ClientAuth(int sockfd, std::string &msg){
   _log << "-------ClientAuth--------\n";
   //std::cout << "Inside Client Auth\n" << std::endl;
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Password(?)|,(1)
   */
-  std::string msg;
   appendInt(msg, ACTION_SIZE + _myUser->_username.length() + 1 
    + _myUser->_password.length() + 1);
   appendShort(msg, CLIENT_AUTH);
@@ -23,7 +22,7 @@ void CClientMessageHandler::A_ClientAuth(){
   _log.flush();
 }
 
-void CClientMessageHandler::A_GetAvailableRooms(){
+void CClientMessageHandler::A_GetAvailableRooms(int sockfd){
   _log << "-------GetAvailableRooms--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)
@@ -36,11 +35,14 @@ void CClientMessageHandler::A_GetAvailableRooms(){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_GetRoomStatus(std::string room){
+void CClientMessageHandler::A_GetRoomStatus(int sockfd, std::string &room){
  _log << "-------GetRoomStatus--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
+  std::string roomname;
+  std::cout << "Enter room name: " ;
+  getline(std::cin, roomname);
   std::string msg;
   appendInt(msg, ACTION_SIZE + _myUser->_username.length() + 1
     + room.length() + 1);
@@ -51,12 +53,13 @@ void CClientMessageHandler::A_GetRoomStatus(std::string room){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_CreateRoom(std::string room, int capacity){
+void CClientMessageHandler::A_CreateRoom(int sockfd, std::string &room){
   _log << "-------CreateRoom--------\n";
   /*
     Size(4)|Action(2)|Capacity(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
   std::string msg;
+  int capacity = 1;
   appendInt(msg, ACTION_SIZE + ACTION_SIZE + _myUser->_username.length() + 1
     + room.length() + 1);
   appendShort(msg, CREATE_ROOM);
@@ -67,7 +70,7 @@ void CClientMessageHandler::A_CreateRoom(std::string room, int capacity){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_JoinRoom(std::string room){
+void CClientMessageHandler::A_JoinRoom(int sockfd, std::string &room){
   _log << "-------JoinRoom--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
@@ -82,7 +85,7 @@ void CClientMessageHandler::A_JoinRoom(std::string room){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_LeaveRoom(){
+void CClientMessageHandler::A_LeaveRoom(int sockfd, std::string &room){
   _log << "-------LeaveRoom--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
@@ -97,7 +100,7 @@ void CClientMessageHandler::A_LeaveRoom(){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_DeliverMessagePacket(std::string message){
+void CClientMessageHandler::A_DeliverMessagePacket(int sockfd, std::string &message){
   _log << "-------DeliverMessagePacket--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Message(?)|,(1)
@@ -112,7 +115,7 @@ void CClientMessageHandler::A_DeliverMessagePacket(std::string message){
   writeMsg(_myUser->_sockfd, msg);
 }
 
-void CClientMessageHandler::A_Disconnect(){
+void CClientMessageHandler::A_Disconnect(int sockfd){
   _log << "-------handleDisconnect--------\n";
   /*
     Size(4)|Action(2)|Username(?)|,(1)
@@ -130,28 +133,28 @@ bool CClientMessageHandler::processMessage(int action, std::string &msg){
 
   switch(action){
     case CLIENT_AUTH:
-      A_ClientAuth();
+      A_ClientAuth(_myUser->_sockfd, msg);
       break;
     case GET_AVAILABLE_ROOMS:
-      A_GetAvailableRooms();
+      A_GetAvailableRooms(_myUser->_sockfd);
       break;
     case GET_ROOM_STATUS:
-      A_GetRoomStatus(msg);
+      A_GetRoomStatus(_myUser->_sockfd, msg);
       break;
     case CREATE_ROOM:
-      A_CreateRoom(msg, 1);
+      A_CreateRoom(_myUser->_sockfd, msg);
       break;
     case JOIN_ROOM:
-      A_JoinRoom(msg);
+      A_JoinRoom(_myUser->_sockfd, msg);
       break;
     case LEAVE_ROOM:
-      A_LeaveRoom();
+      A_LeaveRoom(_myUser->_sockfd, msg);
       break;
     case DELIVER_MESSAGE_PACKET:
-      A_DeliverMessagePacket(msg);
+      A_DeliverMessagePacket(_myUser->_sockfd, msg);
       break;
     case DISCONNECT:
-      A_Disconnect();
+      A_Disconnect(action);
       break;
   }
   return true;

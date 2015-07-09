@@ -1,6 +1,7 @@
 #ifndef USER_HPP
 #define USER_HPP
 
+#include "Poller.hpp"
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -24,7 +25,7 @@
 class CMessageHandler;
 class CClientMessageHandler;
 
-class CUser{
+class CUser: public CPoller{
 private:
     friend class CClientMessageHandler;
     std::string _username;
@@ -43,6 +44,21 @@ public:
     CUser(std::string, std::string, std::string, std::string);
     bool establishConnection();
     void selectOption(int);
+    bool readPoll(int);
+    void closeSocketfd(int);
+    void printOptions();
+    void start();
+    void update(int, std::string&);
+
+    /* Updates user's chatroom */
+    void U_ClientAuth(std::string &);
+    void U_GetAvailableRooms(std::string &);
+    void U_GetRoomStatus(std::string &);
+    void U_CreateRoom(std::string &);
+    void U_JoinRoom(std::string &);
+    void U_LeaveRoom(std::string &);
+    void U_DeliverMessagePacket(std::string &);
+    void U_Disconnect(std::string &);
 
 
     
