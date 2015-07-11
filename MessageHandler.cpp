@@ -123,50 +123,22 @@ std::string CMessageHandler::removeBytes(int sockfd, int numBytes){
 void CMessageHandler::writeMsg(int sockfd, std::string &msg){
   _log << "---------------------- writeMsg -------------------------\n";
 
-  int result = write(sockfd, (void *)msg.data(), msg.size());
+  ssize_t result = write(sockfd, (void *)msg.data(), msg.size());
   _log << "Sent message of size " << msg.size() << 
   " to sockfd" << sockfd << "\n";
   if(result != msg.size()){
     std::cout << "Error cannot write entire message" << std::endl;
+    _log << "Error wrote " << result << " bytes out of " 
+      << msg.size() << " bytes\n";
+  }
+  if(result & EINTR){
+    std::cout << "EINTR" << std::endl;
+    _log << "EINTR\n";
+  }
+  else if (result & EAGAIN){
+    std::cout << "EAGAIN" << std::endl;
+    _log << "EAGAIN\n";    
   }
   _log.flush();
 }
 
-bool CMessageHandler::processMessage(int sockfd, int action, std::string &msg){
-  switch(action){
-    case CLIENT_AUTH:
-      A_ClientAuth(sockfd, msg);
-      break;
-    case GET_AVAILABLE_ROOMS:
-      A_GetAvailableRooms(sockfd);
-      break;
-    case GET_ROOM_STATUS:
-      A_GetRoomStatus(sockfd, msg);
-      break;
-    case CREATE_ROOM:
-      A_CreateRoom(sockfd, msg);
-      break;
-    case JOIN_ROOM:
-      A_JoinRoom(sockfd, msg);
-      break;
-    case LEAVE_ROOM:
-      A_LeaveRoom(sockfd, msg);
-      break;
-    case DELIVER_MESSAGE_PACKET:
-      A_DeliverMessagePacket(sockfd, msg);
-      break;
-    case DISCONNECT:
-      A_Disconnect(sockfd);
-      break;
-  }
-  return true;
-}
-
-void CMessageHandler::A_ClientAuth(int, std::string&){}
-void CMessageHandler::A_GetAvailableRooms(int){}
-void CMessageHandler::A_GetRoomStatus(int, std::string&){}
-void CMessageHandler::A_CreateRoom(int, std::string&){}
-void CMessageHandler::A_JoinRoom(int, std::string&){}
-void CMessageHandler::A_LeaveRoom(int, std::string&){}
-void CMessageHandler::A_DeliverMessagePacket(int, std::string&){}
-void CMessageHandler::A_Disconnect(int){}

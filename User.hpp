@@ -2,6 +2,10 @@
 #define USER_HPP
 
 #include "Poller.hpp"
+#include "MessageHandler.hpp"
+
+#include <boost/lexical_cast.hpp>
+#include <boost/algorithm/string.hpp>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -22,12 +26,9 @@
 #include <netinet/tcp.h>
 #include <fstream>
 
-class CMessageHandler;
-class CClientMessageHandler;
 
-class CUser: public CPoller{
+class CUser: public CPoller, public CMessageHandler{
 private:
-    friend class CClientMessageHandler;
     std::string _username;
     std::string _password;
     int _status;
@@ -38,7 +39,6 @@ private:
     std::vector<std::string> _otherUser;
     struct sockaddr_in _serv_addr;
     struct hosten *_server;
-    CClientMessageHandler *_msgHandler;
 
 public:
     CUser(std::string, std::string, std::string, std::string);
@@ -48,18 +48,34 @@ public:
     void closeSocketfd(int);
     void printOptions();
     void start();
-    void update(int, std::string&);
 
-    /* Updates user's chatroom */
-    void U_ClientAuth(std::string &);
-    void U_GetAvailableRooms(std::string &);
-    void U_GetRoomStatus(std::string &);
-    void U_CreateRoom(std::string &);
-    void U_JoinRoom(std::string &);
-    void U_LeaveRoom(std::string &);
-    void U_DeliverMessagePacket(std::string &);
-    void U_Disconnect(std::string &);
 
+    /*******************************
+    ************ Write *************
+    *******************************/
+
+    bool writeMessage(int);
+    void Write_ClientAuth(int);
+    void Write_GetAvailableRooms(int);
+    void Write_GetRoomStatus(int);
+    void Write_CreateRoom(int);
+    void Write_JoinRoom(int);
+    void Write_LeaveRoom(int);
+    void Write_DeliverMessagePacket(int);
+    void Write_Disconnect(int);
+
+    /*******************************
+    ************* Read *************
+    *******************************/ 
+    void readMessage(int, std::string&);
+    void Read_ClientAuth(std::string &);
+    void Read_GetAvailableRooms(std::string &);
+    void Read_GetRoomStatus(std::string &);
+    void Read_CreateRoom(std::string &);
+    void Read_JoinRoom(std::string &);
+    void Read_LeaveRoom(std::string &);
+    void Read_DeliverMessagePacket(std::string &);
+    void Read_Disconnect(std::string &);
 
     
 };

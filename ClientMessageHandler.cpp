@@ -59,7 +59,7 @@ void CClientMessageHandler::A_CreateRoom(int sockfd, std::string &room){
     Size(4)|Action(2)|Capacity(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
   std::string msg;
-  int capacity = 1;
+  uint16_t capacity = 10;
   appendInt(msg, ACTION_SIZE + ACTION_SIZE + _myUser->_username.length() + 1
     + room.length() + 1);
   appendShort(msg, CREATE_ROOM);
