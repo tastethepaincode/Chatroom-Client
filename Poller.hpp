@@ -1,6 +1,8 @@
 #ifndef POLLER_HPP
 #define POLLER_HPP
 
+#include "Macroz.hpp"
+
 #include <poll.h>
 #include <vector>
 #include <iostream>

@@ -1,6 +1,6 @@
 #include "User.hpp"
-#include "ClientMessageHandler.hpp"
 extern std::ofstream _log;
+extern int globalDisconnect;
 CUser::CUser(std::string username, std::string password, 
   std::string portNum, std::string serverIPAddr):_username(username),
   _password(password), _portNum(portNum), _serverIPAddr(serverIPAddr),
@@ -57,6 +57,7 @@ bool CUser::establishConnection(){
 
   if(rp == NULL){
     _log << "Error connection fail due to rp is NULL\n";
+    ps(Error server is down);
     exit(0);
     return 0;
   }
@@ -141,48 +142,55 @@ void CUser::closeSocketfd(int temp){
       else if(closeResult == EIO){
         _log << "Error on close, EIO\n";
       }
-      _log << "Error cannot close pfd " << _sockfd << closeResult<< "\n";
+      _log << "Error cannot close pfd " << _sockfd << "\n";
     }
 }
 
 void CUser::start(){
-  int option = -999;
-  printOptions();
-  std::cout << "Option 0 to 9: " ;
-  _log << "Option 0 to 9: \n";
-  std::cin >> option;
-  std::cout << "You selected: " << option << std::endl;
-  _log << "You selected: " << option << "\n\n";
-  _log.flush();
-  selectOption(option);
-
-    if(option == 9){//exit
-      exit(0);
+  //This thread reads packets from Server
+  std::thread t1([this] {this->constantUpdate();});
+  t1.detach();
+  _input = false;
+  writeMessage(CLIENT_AUTH);
+  while(1){
+    //if user in room then always write message
+    if(_room.compare("") != 0){
+      selectOption(DELIVER_MESSAGE_PACKET);
     }
-
-
-  /* Read sockets */
-  int ret = 0;
-  if( ret = setReadPoll(10) > 0){
-    _log << "Poll detected " << ret << " reply \n";
-    for(struct pollfd& pfd: _userPollfd){
-
-    /*There is a message to be processed*/
-      if(pfd.revents & POLLIN){
-        if(readPoll(_sockfd) == false){
-          /* TODO */
-        }
+    //if not in room the display other options
+    else{
+      if(_input== false){
+        continue;
       }
-      else if(pfd.revents & POLLHUP){
-        _log << "Poll detected that " << pfd.fd << " hanged up POLLHUP\n";
+      int option = -999;
+      printOptions();
+      std::cout << "Option 0 to 9: " ;
+      _log << "Option 0 to 9: \n";
+      std::cin >> option;
+      std::cin.ignore();
+      if(option < 0 || option > 9){
+        ps(Invalid option try again.);
+        continue;
+      }
+      std::cout << "You selected: " << option << std::endl;
+      _log << "You selected: " << option << "\n\n";
+      _log.flush();
+      selectOption(option);
+
+      if(option == 9){//exit
         exit(0);
       }
+      if(option == 8){
+        continue;
+      }
+
+      _input = false;
     }
   }
 }
 
 void CUser::printOptions(){
-  std::cout << "Please select an option.\n" << std::endl;
+  std::cout << std::endl;
   std::cout << "9. Exit " << std::endl;
   std::cout << "0. Authenticate" << std::endl;
   std::cout << "1. Get available rooms " << std::endl;
@@ -196,7 +204,8 @@ void CUser::printOptions(){
 }
 
 void CUser::readMessage(int action, std::string &msg){
-
+  ps();
+  logs(==================================);
   switch(action){
   case CLIENT_AUTH:
     Read_ClientAuth(msg);
@@ -226,6 +235,9 @@ void CUser::readMessage(int action, std::string &msg){
     std::cout << "Incorrect option received." << std::endl;
     _log << "Incorrect option received.\n";
   }
+  //read first then turn input back to on
+  _input = true;
+  logs(====================================);
 }
 
 void CUser::Read_ClientAuth(std::string &msg){
@@ -239,6 +251,7 @@ void CUser::Read_ClientAuth(std::string &msg){
   if(msg == "1,"){
     std::cout << "Successfully authenticated" << std::endl;
     _log << "Successfully authenticated\n";
+    _status = 1;
   }
   else if(msg == "0,"){
     std::cout << "Failed to authenticate" << std::endl;
@@ -262,28 +275,111 @@ void CUser::Read_GetAvailableRooms(std::string &msg){
     if(i != words.size() - 1)
       std::cout << words[i] << ", ";
   }
-  std::cout << std::endl;
+  ps();
   _log << "Available rooms are : " << msg << "\n";
 }
 
 void CUser::Read_GetRoomStatus(std::string &msg){
-
+  //  Size(4)|Action(2)|Roomname(?)|,(1)|Capacity(?)|,(1)|Size(?)|,(1)|Username(?)|,(1)
+  std::vector<std::string> words;
+  boost::split(words, msg, boost::is_any_of(","), boost::token_compress_on);
+  if(words.size() == 3){
+    //No room exist
+    psvs(Room, words[0], does not exist);
+    logsvs(Room, words[0], does not exist);
+    return;
+  }
+  else{
+    std::string roomname = words[0];
+    std::string capacity = words[1];
+    std::string size = words[2];
+    psv(Room, roomname);
+    logsv(Room, roomname);
+    psv(Size:, size);
+    logsv(Size:, size);
+    psv(Max size:, capacity);
+    logsv(Max size:, capacity);
+    // turn words into vector of std::string username
+    words.erase(words.begin()+0);
+    words.erase(words.begin()+0);
+    words.erase(words.begin()+0);
+    ps(Players:);
+    logs(Players:);
+    for(std::string usr: words){
+      pv(usr);
+      logv(usr);
+    }
+  }
 }
 
 void CUser::Read_CreateRoom(std::string &msg){
-
+  //Size(4)|Action(2)|Result(2)|Roomname(?)
+  std::vector<std::string> words;
+  boost::split(words, msg, boost::is_any_of(","), boost::token_compress_on);
+  if(words[0].compare("0") == 0){
+    psv(Failed to create room: , words[1]);
+  }
+  else{
+    psv(Created room: , words[1]);
+  }
 }
 
 void CUser::Read_JoinRoom(std::string &msg){
+  //Size(4)|Action(2)|Result(2)|Roomname
+  std::vector<std::string> words;
+  boost::split(words, msg, boost::is_any_of(","), boost::token_compress_on);
+  if(words[0].compare("1") == 0){
+    _room = words[1];
+    psv(you have joined room, words[1]);
+    logsv(you have joined romm, words[1]);
+    _status = 2;
+    _autoUpdate = 1;
+    return;
+  }
 
+  psv(cannot join room, words[1]);
+  logsv(cannot join room, words[1]);
 }
 
 void CUser::Read_LeaveRoom(std::string &msg){
+  // Size(4)|Action(2)|Result(2)|Roomname(?)
+  std::vector<std::string> words;
+  boost::split(words, msg, boost::is_any_of(","), boost::token_compress_on);
+  if(words[0].compare("1") == 0){
+    if(_room.compare(words[1]) == 0){
+      psv(You left room: , _room);
+      logsv(You left room: , _room);
+      _room = "";
+      _status = 1;
+    }
+    else{
+      psvsv(The room you requested to leave is , words[1], but you are in room , _room);
+      logsvsv(The room you requested to leave is , words[1], but you are in room , _room);
+    }
+  }
+  else{
+    psv("Error: unable to leave room ", words[1]);
+    logsv("Error: unable to leave room ", words[1]);
+
+  }
 
 }
 
 void CUser::Read_DeliverMessagePacket(std::string &msg){
-
+  // Size(4)|Action(2)|Username(?)|Roomname(?)
+  logs(Read_DeliverMessagePacket);
+  std::vector<std::string> words;
+  boost::split(words, msg, boost::is_any_of(","), boost::token_compress_on);
+  std::string username = words[0];
+  std::string message = words[1];
+  //Print out only others' message
+  if(username.compare(_username) != 0){
+    std::cout << username << ": " << message << std::endl;
+    std::cout.flush();
+  }
+  else{
+    _input = true;
+  }
 }
 
 void CUser::Read_Disconnect(std::string &msg){
@@ -335,7 +431,6 @@ void CUser::Write_ClientAuth(int sockfd){
   appendShort(msg, CLIENT_AUTH);
   appendString(msg, _username);
   appendString(msg, _password);
-  std::cout  << msg << std::endl;
   writeMsg(_sockfd, msg);
   _log.flush();
 }
@@ -345,11 +440,14 @@ void CUser::Write_GetAvailableRooms(int sockfd){
   /*
     Size(4)|Action(2)|Username(?)|,(1)
   */
+  if(_status == 0){
+    ps(Please login first.);
+    return;
+  }
   std::string msg;
   appendInt(msg, ACTION_SIZE + _username.size() + 1);
   appendShort(msg, GET_AVAILABLE_ROOMS);
   appendString(msg, _username);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
   _log.flush();
 }
@@ -359,6 +457,10 @@ void CUser::Write_GetRoomStatus(int sockfd){
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
+  if(_status == 0){
+    ps(Please login first.);
+    return;
+  }
   std::string room;
   std::string msg;
 
@@ -369,7 +471,6 @@ void CUser::Write_GetRoomStatus(int sockfd){
   appendShort(msg, GET_ROOM_STATUS);
   appendString(msg, _username);
   appendString(msg, room);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
 }
 
@@ -382,18 +483,16 @@ void CUser::Write_CreateRoom(int sockfd){
   std::string room;
   std::string capacity;
   /* Clear buffer */
-  std::cin.ignore();
   std::cout << "Enter room name: ";
   std::getline(std::cin, room);
   std::cout << "Enter room capacity: ";
   std::getline(std::cin, capacity);
-  appendInt(msg, ACTION_SIZE + ACTION_SIZE + _username.length() + 1
-    + room.length() + 1);
+  appendInt(msg, ACTION_SIZE + capacity.size() + 1 + _username.length() + 1
+    + room.size() + 1);
   appendShort(msg, CREATE_ROOM);
   appendString(msg, capacity);
   appendString(msg, _username);
   appendString(msg, room);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
 }
 
@@ -402,6 +501,15 @@ void CUser::Write_JoinRoom(int sockfd){
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
+  if(_status == 0){
+    ps(Please login first.)
+  }
+  if(_room.compare("") != 0){
+    ps(Please leave your room before you join another.);
+    logs(Please leave your room before you join another.);
+    return;
+  }
+
   std::string msg;
   std::string room;
   std::cout << "Enter room name: ";
@@ -411,7 +519,6 @@ void CUser::Write_JoinRoom(int sockfd){
   appendShort(msg, JOIN_ROOM);
   appendString(msg, _username);
   appendString(msg, room);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
 }
 
@@ -420,13 +527,20 @@ void CUser::Write_LeaveRoom(int sockfd){
   /*
     Size(4)|Action(2)|Username(?)|,(1)|Room name(?)|,(1)
   */
+  if(_status == 0){
+    ps(Please login first.);
+  }
+  if(_status == 1){
+    ps(You are not in a room.);
+    logs(You are not in a room.);
+    return;
+  }
   std::string msg;
   appendInt(msg, ACTION_SIZE + _username.length() + 1
     + _room.length() + 1);
   appendShort(msg, LEAVE_ROOM);
   appendString(msg, _username);
   appendString(msg, _room);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
 }
 
@@ -437,14 +551,18 @@ void CUser::Write_DeliverMessagePacket(int sockfd){
   */
   std::string msg;
   std::string message;
-  std::cout << _username <<": ";
   getline(std::cin, message);
+  //If user wants to leave
+  if(message.compare(LEAVE_INDICATION) == 0){
+    Write_LeaveRoom(sockfd);
+    _room = "";
+    return;
+  }
   appendInt(msg, ACTION_SIZE + _username.length() + 1
     + message.length() + 1);
   appendShort(msg, DELIVER_MESSAGE_PACKET);
   appendString(msg, _username);
   appendString(msg, message);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
 }
 
@@ -457,7 +575,36 @@ void CUser::Write_Disconnect(int sockfd){
   appendInt(msg, ACTION_SIZE + _username.length() + 1);
   appendShort(msg, DISCONNECT);
   appendString(msg, _username);
-  std::cout << msg << std::endl;
   writeMsg(_sockfd, msg);
+  globalDisconnect = true;
 
+}
+
+void CUser::constantUpdate(){
+    /* Read sockets */
+  while(1){
+    if(globalDisconnect == true){
+      exit(0);
+    }
+    int ret = 0;
+    if( ret = setReadPoll(500) > 0){
+      _log << "Poll detected " << ret << " reply \n";
+      for(struct pollfd& pfd: _userPollfd){
+
+      /*There is a message to be processed*/
+        if(pfd.revents & POLLIN){
+          if(readPoll(_sockfd) == false){
+            /* TODO */
+            psv(Error in readPoll processing socket , _sockfd);
+            closeSocketfd(_sockfd);
+            exit(0);
+          }
+        }
+        else if(pfd.revents & POLLHUP){
+          _log << "Poll detected that " << pfd.fd << " hanged up POLLHUP\n";
+          exit(0);
+        }
+      }
+    }
+  }
 }

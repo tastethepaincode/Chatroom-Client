@@ -3,7 +3,8 @@
 
 #include "Poller.hpp"
 #include "MessageHandler.hpp"
-
+#include "Macroz.hpp"
+#include <thread>
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 #include <fstream>
@@ -31,6 +32,9 @@ class CUser: public CPoller, public CMessageHandler{
 private:
     std::string _username;
     std::string _password;
+    // Controls when to print out and ask for input
+    bool _input = true;
+    // 0 == unauth, 1 = auth, 2 = in room
     int _status;
     std::string _room;
     std::string _portNum;
@@ -39,6 +43,8 @@ private:
     std::vector<std::string> _otherUser;
     struct sockaddr_in _serv_addr;
     struct hosten *_server;
+    //Do auto update off
+    int _autoUpdate = 0;
 
 public:
     CUser(std::string, std::string, std::string, std::string);
@@ -48,6 +54,7 @@ public:
     void closeSocketfd(int);
     void printOptions();
     void start();
+    void constantUpdate();
 
 
     /*******************************

@@ -3,7 +3,7 @@
 extern std::ofstream _log;
 
 int CPoller::setReadPoll(int timeout){
-  
+  _mtx.lock();
   for(struct pollfd& pfd: _userPollfd){
    pfd.events = POLLIN;
    pfd.revents = 0;
@@ -14,7 +14,7 @@ int CPoller::setReadPoll(int timeout){
     std::cout << "Problem with return from poll" << std::endl;
     return 0;
   }
-
+  _mtx.unlock();
   return ret;
 }
 
